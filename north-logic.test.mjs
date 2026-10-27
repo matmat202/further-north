@@ -85,6 +85,39 @@ for (const day of ['2026-10-26', '2026-10-27', '2027-02-29', '2030-12-31', 'prac
   eq(`${day}: the same day gives the same ten`, L.pairsFor(W.cities, day), P);
 }
 ok('different days give different tens', JSON.stringify(L.pairsFor(W.cities, '2026-10-26')) !== JSON.stringify(L.pairsFor(W.cities, '2026-10-27')));
+// Days already served, pinned by name. Everyone gets the same ten on a day (the share text
+// compares scores) and ?day= replays a past day against picks stored by round, so a change
+// to the hash, the rng, a band or the search that re-deals a served day breaks both. These
+// were read from the LIVE site on 2026-10-27 (world.json and north-logic.js byte-identical
+// to these files). If world.json is deliberately regenerated, this is meant to fail: decide
+// then what happens to the days already played. "Reproduces itself" above cannot see any of it.
+const SERVED = {
+  '2026-10-26': ['Peshawar|Paris', 'Bandar Abbas|Nashville', 'Haikou|Dakar', 'Shijiazhuang|Beersheba',
+    'Delhi|Madinah', 'Sao Paulo|Mbabane', "Mosul|Xi'an", 'Denver|Yinchuan', 'Algiers|Taiyuan', 'Tyumen|Gothenburg'],
+  '2026-10-27': ['Wuxi|Ottawa', 'Jamshedpur|Baghdad', 'Wuhan|Tunis', 'Yuzhno-Sakhalinsk|Duesseldorf',
+    'Yerevan|Nashville', 'Kremenchuk|Quebec', 'Havana|Honolulu', 'Adiyaman|Pyongyang', 'Prague|Astana',
+    'Luxembourg|Blagoveshchensk'],
+};
+for (const [day, want] of Object.entries(SERVED)) {
+  eq(`${day}: the ten actually served, unchanged`, L.pairsFor(W.cities, day).map(([i, j]) => W.cities[i][0] + '|' + W.cities[j][0]), want);
+}
+
+// --- boundaries the cases above never stood on (bin/mutate survivors, 2026-10-27) -------
+{
+  const at = (country, lat, lon) => ({ country, lat, lon });
+  ok('a gap exactly at the band floor fits', L.fits(at('X', 10, 0), at('Y', 13, 100), [3, 5]));
+  ok('a gap exactly at the band ceiling fits', L.fits(at('X', 10, 0), at('Y', 15, 100), [3, 5]));
+  ok('a longitude gap of exactly MIN_LON_GAP fits', L.fits(at('X', 10, 0), at('Y', 14, L.MIN_LON_GAP), [3, 5]));
+  ok('one degree short of MIN_LON_GAP does not', !L.fits(at('X', 10, 0), at('Y', 14, L.MIN_LON_GAP - 1), [3, 5]));
+  eq('lonGap just past 180 wraps', L.lonGap({ lon: -170 }, { lon: 10.5 }), 179.5);
+  eq('just north of the equator is N', L.fmtLat(0.5), '0.5°N');
+  const g = (km) => L.gapKm({ lat: km / L.KM_PER_DEG }, { lat: 0 });
+  eq('10.5 km rounds to tens', g(10.5), '10 km');
+  eq('just over 1,000 km keeps the thousands comma', g(1000.4), '1,000 km');
+  eq('the first day itself can be the missed one', L.missedDay('2026-10-28', () => false), '2026-10-27');
+  eq('...and back to FIRST_DAY when the later ones were played',
+    L.missedDay('2026-10-28', (d) => d !== L.FIRST_DAY), L.FIRST_DAY);
+}
 {
   const tiny = [['P', 'X', 10, 0, 1], ['Q', 'Y', 40, 100, 1], ['R', 'Z', -20, -100, 1]];
   const P = L.pairsFor(tiny, 'd', 3);
