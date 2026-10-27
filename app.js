@@ -11,18 +11,19 @@ const store = {
 let W = null, C = [];
 let game = null; // { key, day, practice, pairs, picks }
 
-function start(practice) {
-  const day = L.dayKey();
+// `past` is an earlier day's ten (from ?day=): saved, shareable, outside the streak.
+function start(practice, past = null) {
+  const day = past || L.dayKey();
   const key = practice ? `practice-${Date.now().toString(36)}` : day;
-  game = { key, day, practice, pairs: L.pairsFor(W.cities, key), picks: practice ? [] : store.get('fn:' + day, []) };
-  $('daily').hidden = !practice;
+  game = { key, day, practice, past: !!past && !practice, pairs: L.pairsFor(W.cities, key), picks: practice ? [] : store.get('fn:' + day, []) };
+  $('daily').hidden = !practice && !game.past;
   render();
 }
 
 function save() {
   if (game.practice) return;
   store.set('fn:' + game.day, game.picks);
-  if (game.picks.length === game.pairs.length) {
+  if (game.picks.length === game.pairs.length && !game.past) {
     const days = store.get('fn:days', []);
     if (!days.includes(game.day)) { days.push(game.day); store.set('fn:days', days.slice(-400)); }
   }
@@ -55,7 +56,7 @@ function drawMarks(now) {
 
 function drawRound(k, answered) {
   const [a, b] = pairAt(k);
-  $('round').textContent = `${game.practice ? 'Practice · ' : ''}Round ${k + 1} of ${game.pairs.length}`;
+  $('round').textContent = `${game.practice ? 'Practice · ' : game.past ? `${game.day} · ` : ''}Round ${k + 1} of ${game.pairs.length}`;
   const btns = [...$('pick').querySelectorAll('button')];
   [a, b].forEach((c, i) => {
     const el = btns[i];
@@ -139,12 +140,16 @@ function drawMap(a, b) {
 
 function drawEnd() {
   const m = marks(), score = m.filter(Boolean).length;
-  $('endday').textContent = game.practice ? 'Practice ten' : `Today's ten · ${game.day}`;
+  $('endday').textContent = game.practice ? 'Practice ten' : `${game.past ? 'Earlier' : 'Today\'s'} ten · ${game.day}`;
   $('score').textContent = `${score} / ${m.length}`;
   const s = L.streak(store.get('fn:days', []), game.day);
   $('streak').textContent = game.practice ? 'Practice rounds do not count toward your streak.'
+    : game.past ? 'Earlier days do not count toward your streak.'
     : `${s === 1 ? 'First day of a streak' : `${s}-day streak`}. A new ten tomorrow.`;
   $('share').hidden = game.practice;
+  const miss = game.practice ? null : L.missedDay(game.day, (k) => store.get('fn:' + k, []).length >= game.pairs.length);
+  $('earlier').hidden = !miss;
+  if (miss) { $('earlier').href = `?day=${miss}`; $('earlier').textContent = miss === L.prevDay(L.dayKey()) ? "Missed yesterday? Play yesterday's ten" : `Play the ten from ${miss}`; }
   $('copied').textContent = '';
   $('recap').replaceChildren(...game.pairs.map((_, k) => {
     const [a, b] = pairAt(k);
@@ -169,7 +174,7 @@ $('pick').addEventListener('click', (e) => { const b = e.target.closest('button'
 $('next').addEventListener('click', next);
 $('share').addEventListener('click', share);
 $('practice').addEventListener('click', () => start(true));
-$('daily').addEventListener('click', () => start(false));
+$('daily').addEventListener('click', () => { if (location.search) history.replaceState(null, '', location.pathname); start(false); });
 document.addEventListener('keydown', (e) => {
   if (!game || e.metaKey || e.ctrlKey || e.altKey) return;
   if (game.showing == null && !$('play').hidden) {
@@ -184,7 +189,7 @@ document.addEventListener('keydown', (e) => {
 fetch('data/world.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((w) => {
   W = w; C = w.cities.map(L.city);
   $('count').textContent = String(C.length);
-  start(false);
+  start(false, L.pastDay(new URLSearchParams(location.search).get('day'), L.dayKey()));
 }).catch((e) => {
   $('round').textContent = '';
   $('out').textContent = `Could not load the cities (${e.message}). Reload to try again.`;
