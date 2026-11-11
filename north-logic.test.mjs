@@ -97,9 +97,39 @@ const SERVED = {
   '2026-10-27': ['Wuxi|Ottawa', 'Jamshedpur|Baghdad', 'Wuhan|Tunis', 'Yuzhno-Sakhalinsk|Duesseldorf',
     'Yerevan|Nashville', 'Kremenchuk|Quebec', 'Havana|Honolulu', 'Adiyaman|Pyongyang', 'Prague|Astana',
     'Luxembourg|Blagoveshchensk'],
+  // Served since (bin/mutate survivors, 2026-11-11): the band and search constants were left
+  // as "re-deal only future days" when two days were pinned, but every day since has been
+  // played. Dealt by this north-logic.js and world.json, byte-identical to the live site
+  // on 2026-11-11 and unchanged in git since 2026-10-27. 11-11 is served east of UTC.
+  '2026-10-28': ["Honolulu|Dushanbe","Mainz|Yinchuan","Zuerich|Philadelphia","Sanaa|Ho Chi Minh City","Santiago|Maseru","Ashgabat|Rabat","Grozny|Geneva","Changsha|Al 'Ashir min Ramadan","Abidjan|Georgetown","Algiers|Sanliurfa"],
+  '2026-10-29': ["Tegucigalpa|Nairobi","Kuwait City|Seoul","Shijiazhuang|Florence","Astrakhan|Leipzig","Providence|Xining","Alexandria|Xi'an","Montevideo|Melbourne","Bishkek|Bucharest","Jinan|Sevilla","Ho Chi Minh City|Djibouti"],
+  '2026-10-30': ["Las Vegas|Guangzhou","Lhasa|Diyarbakir","Doha|Haikou","Duesseldorf|Harbin","Hannover|Ulan Bator","Bishkek|Geneva","Busan|Tripoli","Rawalpindi|Oklahoma City","Nouakchott|Mumbai","Wuxi|Alexandria"],
+  '2026-10-31': ["Yuzhno-Sakhalinsk|Damascus","Nassau|Kyoto","Edirne|Kabul","Petah Tiqva|Incheon","Taiyuan|Istanbul","Dubai|Foshan","Bursa|San Jose","Little Rock|Jinan","Quito|Libreville","Bishkek|Marseille"],
+  '2026-11-01': ["Zagreb|Suzhou","Paris|Tashkent","Yantai|Gaza","Istanbul|Harbin","Nanning|Manama","Washington|Antakya","Seoul|Bursa","Jeddah|Havana","Chattogram|Ta'if","Kabul|Gwangju"],
+  '2026-11-02': ["Katowice|Tangshan","Oradea|Novosibirsk","Muscat|Guatemala City","Bratislava|UEruemqi","Oxford|Ulan Bator","Tunis|Srinagar","Nashville|Pyongyang","Rawalpindi|Yokohama","Qingdao|Latakia","New York City|Yerevan"],
+  '2026-11-03': ["Milwaukee|Yangzhou","Nassau|Las Vegas","Jamshedpur|Fort-de-France","Jakarta|Mamoudzou","Xi'an|New Orleans","UEruemqi|Yerevan","Baku|Incheon","Lahore|Tripoli","Phoenix|Srinagar","Zhengzhou|Latakia"],
+  '2026-11-04': ["Pune|Kyoto","Boston|Jalandhar","Managua|Bandar Seri Begawan","Xiamen|Kingston","Nairobi|Kuala Lumpur","Yinchuan|Plovdiv","Sofia|New York City","Santiago|Adelaide","Baghdad|Nanjing","Islamabad|Rabat"],
+  '2026-11-05': ["Tangshan|Brussels","UEruemqi|Kyoto","Shijiazhuang|Ottawa","Jinan|Shymkent","London|Quebec","Yokohama|Gaza","Changzhou|Phoenix","San Jose|Aleppo","Seoul|Las Vegas","Xining|Nashville"],
+  '2026-11-06': ["Hong Kong|Las Vegas","Al 'Ashir min Ramadan|Haikou","Bridgetown|Juba","Srinagar|Philadelphia","Hangzhou|Damascus","Little Rock|Athens","Beijing|Sanliurfa","Ahmedabad|Honolulu","Baghdad|Los Angeles","Deir ez-Zor|Busan"],
+  '2026-11-07': ["Dublin|Deir ez-Zor","Vienna|Yantai","Yaounde|Thanjavur","Fuzhou|Tripoli","Madrid|Nicosia","Quebec|Cherkasy","Mashhad|Pyongyang","Barcelona|Grozny","Jeju City|Peshawar","Madinah|Kunming"],
+  '2026-11-08': ["Astana|Philadelphia","San Diego|Rome","San Francisco|Grozny","Doha|Wuhan","Tianjin|Milwaukee","Sanliurfa|Anshan","Yerevan|Taiyuan","Al 'Ashir min Ramadan|Suzhou","Jerusalem|Yangzhou","Bishkek|Skopje"],
+  '2026-11-09': ["Lhasa|Salt Lake City","Aleppo|Xiamen","Islamabad|Shenyang","New Orleans|Shantou","Ashgabat|Little Rock","Rostov-on-Don|Brussels","Libreville|Mogadishu","Qingdao|Srinagar","Chicago|Pristina","Muscat|Dongguan"],
+  '2026-11-10': ["Boston|Guiyang","Guatemala City|Manama","Abuja|Yangon","Gwangju|Tirana","Yaounde|Panama City","Marseille|New York City","Dushanbe|Naples","Jinan|Little Rock","Yinchuan|Denver","Rostov-on-Don|Ulan Bator"],
+  '2026-11-11': ["Panama City|Macau","Erzincan|Wuhan","Mashhad|Houston","Denver|Peshawar","Lviv|Novosibirsk","Los Angeles|Lanzhou","Dushanbe|Salt Lake City","Mainz|Volgograd","Little Rock|Baghdad","Hohhot|Tirana"],
 };
 for (const [day, want] of Object.entries(SERVED)) {
   eq(`${day}: the ten actually served, unchanged`, L.pairsFor(W.cities, day).map(([i, j]) => W.cities[i][0] + '|' + W.cities[j][0]), want);
+}
+// The deal is frozen, not just its served days (2026-11-11). Pinning only served days goes
+// stale every midnight: on 10-27 the band constants were left as "re-deal only future days",
+// and 15 days later those days had been played. So two years from launch are hashed. A
+// deliberate retune must start on a date not yet served, the way poolFile() does, and then
+// move this hash in the same commit.
+{
+  const days = []; for (let d = '2026-10-26'; days.length < 731; ) { days.push(d); const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + 1); d = x.toISOString().slice(0, 10); }
+  const h = (await import('node:crypto')).createHash('sha256');
+  for (const d of days) h.update(d + JSON.stringify(L.pairsFor(W.cities, d)));
+  eq('two years of tens from launch, unchanged', h.digest('hex'), '9e6ce63caac326819dc05033ab54d74a77783bdf986e34fa73b489fb7b8e20c4');
 }
 
 // --- boundaries the cases above never stood on (bin/mutate survivors, 2026-10-27) -------
