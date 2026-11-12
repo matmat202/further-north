@@ -53,29 +53,36 @@ h2.q{font-size:18px;margin:6px 0 10px;text-align:center}
 .out{margin:12px 0 0;text-align:center;min-height:1.4em;font-size:15px}
 .out b.y{color:var(--good)}.out b.n{color:var(--bad)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;margin:12px 0 0}
-#map svg{display:block;width:100%;height:auto;border-radius:8px}
-#map .sea{fill:var(--sea)}
-#map .land{fill:var(--land);stroke:var(--land-edge);stroke-width:.6;vector-effect:non-scaling-stroke}
-#map .eq{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:2 4;vector-effect:non-scaling-stroke}
-#map .ll{stroke-width:1.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
-#map .ll.a{stroke:var(--a)}#map .ll.b{stroke:var(--b)}
-#map circle{stroke:var(--card);vector-effect:non-scaling-stroke;stroke-width:2}
-#map circle.a{fill:var(--a)}#map circle.b{fill:var(--b)}
-#map text{font-weight:700;paint-order:stroke;stroke:var(--card);stroke-linejoin:round}
-#map text.a{fill:var(--a)}#map text.b{fill:var(--b)}
+.map svg{display:block;width:100%;height:auto;border-radius:8px}
+.map .sea{fill:var(--sea)}
+.map .land{fill:var(--land);stroke:var(--land-edge);stroke-width:.6;vector-effect:non-scaling-stroke}
+.map .eq{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:2 4;vector-effect:non-scaling-stroke}
+.map .ll{stroke-width:1.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+.map .ll.a{stroke:var(--a)}.map .ll.b{stroke:var(--b)}
+.map circle{stroke:var(--card);vector-effect:non-scaling-stroke;stroke-width:2}
+.map circle.a{fill:var(--a)}.map circle.b{fill:var(--b)}
+.map text{font-weight:700;paint-order:stroke;stroke:var(--card);stroke-linejoin:round}
+.map text.a{fill:var(--a)}.map text.b{fill:var(--b)}
 .go{display:flex;justify-content:center;gap:8px;margin:12px 0 0;flex-wrap:wrap}
 .go button{font:inherit;font-weight:600;padding:10px 18px;border:0;border-radius:10px;background:var(--accent);color:var(--card);cursor:pointer}
 .go button.ghost{background:var(--card);color:var(--accent);border:1px solid var(--line)}
 .end{text-align:center}
 .end .score{font-size:40px;font-weight:700;margin:4px 0 0}
 .end p{margin:4px 0;color:var(--ink-2)}
-ol.recap{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:6px}
-ol.recap li{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;display:flex;gap:8px;align-items:baseline}
+ol.recap{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
+ol.recap li{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:13px}
+ol.recap summary{padding:8px 10px;display:flex;gap:8px;align-items:baseline;cursor:pointer;list-style:none}
+ol.recap summary::-webkit-details-marker{display:none}
+ol.recap summary::after{content:'▸';color:var(--ink-3);flex:none}
+ol.recap details[open] summary::after{content:'▾'}
+ol.recap .why{padding:0 10px 10px}
+ol.recap .why p{margin:0 0 6px;color:var(--ink-2)}
 ol.recap li .m{font-weight:700;width:1.2em;flex:none}
 ol.recap li .m.y{color:var(--good)}ol.recap li .m.n{color:var(--bad)}
 ol.recap li .t{flex:1;min-width:0}
 ol.recap li .d{color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 footer{font-size:12px;color:var(--ink-2);line-height:1.5;margin:18px 2px 8px}
+.end p.recap-hint{font-size:12px;color:var(--ink-3);margin:14px 0 0}
 .earlier{text-align:center;margin:.4rem 0}
 [hidden]{display:none!important}
 @media (max-width:480px){.pick button b{font-size:17px}.pick .key{display:none}}
@@ -94,7 +101,7 @@ footer{font-size:12px;color:var(--ink-2);line-height:1.5;margin:18px 2px 8px}
     <button type="button" class="b" data-i="1"><b></b><small></small><span class="lat"></span><span class="key">→ or 2</span></button>
   </div>
   <p class="out" id="out"></p>
-  <div class="card" id="map" hidden></div>
+  <div class="card map" id="map" hidden></div>
   <div class="go"><button type="button" id="next" hidden>Next</button></div>
 </section>
 
@@ -109,6 +116,7 @@ footer{font-size:12px;color:var(--ink-2);line-height:1.5;margin:18px 2px 8px}
   </div>
   <p id="copied" aria-live="polite"></p>
   <p class="earlier"><a id="earlier" hidden></a></p>
+  <p class="recap-hint" id="recaphint">Tap a pair to see it on the map again.</p>
   <ol class="recap" id="recap"></ol>
 </section>
 

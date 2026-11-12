@@ -124,6 +124,11 @@ export function shareText(day, marks) {
   return `Further North ${day}: ${score}/${marks.length}\n${marks.map((m) => (m ? '🟩' : '🟥')).join('')}`;
 }
 
+// The link under a shared result opens that same ten, today or any later day: ?day= is
+// ignored while it is still today (pastDay), and plays it as an earlier ten after that.
+export const SITE = 'https://matmat202.github.io/further-north/';
+export function shareUrl(day) { return `${SITE}?day=${day}`; }
+
 // Consecutive days played, ending today or yesterday. `days` is a list of dayKeys.
 export function streak(days, today) {
   const have = new Set(days);

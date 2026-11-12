@@ -103,8 +103,10 @@ function next() {
   if (!$('play').hidden) first.focus({ preventScroll: true }); else $('share').focus({ preventScroll: true });
 }
 
+function drawMap(a, b) { $('map').replaceChildren(mapSvg(a, b)); }
+
 // The map, zoomed to the pair: a line at each city's latitude makes the answer visible.
-function drawMap(a, b) {
+function mapSvg(a, b) {
   const wrap = Math.abs(a.lon - b.lon) > 180;
   let x = -180, w = 360;
   if (!wrap) {
@@ -135,7 +137,7 @@ function drawMap(a, b) {
       'font-size': fs, 'stroke-width': fs / 5, 'text-anchor': cx < x + w * 0.25 ? 'start' : cx > x + w * 0.75 ? 'end' : 'middle' });
     t.textContent = `${c.name} ${L.fmtLat(c.lat)}`;
   });
-  $('map').replaceChildren(svg);
+  return svg;
 }
 
 function drawEnd() {
@@ -159,13 +161,25 @@ function drawEnd() {
     const [n, so] = L.northIndex(a, b) === 0 ? [a, b] : [b, a];
     const t = document.createElement('span'); t.className = 't'; t.textContent = `${n.name} is north of ${so.name}`;
     const d = document.createElement('span'); d.className = 'd'; d.textContent = `${L.fmtLat(n.lat)} vs ${L.fmtLat(so.lat)}`;
-    li.append(mk, t, d);
+    // Tap a row to see the pair again: who is where, and the map that made the round.
+    const det = document.createElement('details');
+    const sum = document.createElement('summary');
+    sum.append(mk, t, d);
+    const why = document.createElement('div'); why.className = 'why map';
+    det.append(sum, why);
+    det.addEventListener('toggle', () => {
+      if (!det.open || why.firstChild) return;
+      const p = document.createElement('p');
+      p.textContent = `${a.name}, ${a.country} · ${b.name}, ${b.country}. ${L.verdict(a, b)}`;
+      why.append(p, mapSvg(a, b));
+    });
+    li.append(det);
     return li;
   }));
 }
 
 async function share() {
-  const text = L.shareText(game.day, marks()) + '\nhttps://matmat202.github.io/further-north/';
+  const text = L.shareText(game.day, marks()) + '\n' + L.shareUrl(game.day);
   try { await navigator.clipboard.writeText(text); $('copied').textContent = 'Copied.'; }
   catch { $('copied').textContent = text; }
 }

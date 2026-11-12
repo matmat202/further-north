@@ -33,6 +33,11 @@ eq('gap in km rounds by size', [L.gapKm({ lat: 0 }, { lat: 0.05 }), L.gapKm({ la
 eq('verdict names north first', L.verdict(B, A), 'A is about 130 km further north than B.');
 eq('day key is the local date', L.dayKey(new Date(2026, 0, 5, 23, 59)), '2026-01-05');
 eq('share text', L.shareText('2026-10-26', [true, false, true]), 'Further North 2026-10-26: 2/3\n🟩🟥🟩');
+// the shared link opens the sharer's ten: today's on the day, the same one as ?day= after
+const dayOf = (u) => L.pastDay(new URL(u).searchParams.get('day'), '2026-11-13');
+eq('a shared link names its day', dayOf(L.shareUrl('2026-11-12')), '2026-11-12');
+eq('a shared link opened the same day plays today', L.pastDay(new URL(L.shareUrl('2026-11-12')).searchParams.get('day'), '2026-11-12'), null);
+ok('a shared link points at the site', L.shareUrl('2026-11-12').startsWith('https://matmat202.github.io/further-north/'));
 eq('streak counts back from today', L.streak(['2026-10-24', '2026-10-25', '2026-10-26'], '2026-10-26'), 3);
 eq('streak survives not having played yet today', L.streak(['2026-10-24', '2026-10-25'], '2026-10-26'), 2);
 eq('streak breaks on a gap', L.streak(['2026-10-23', '2026-10-25', '2026-10-26'], '2026-10-26'), 2);
