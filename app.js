@@ -149,6 +149,7 @@ function drawEnd() {
     : game.past ? 'Earlier days do not count toward your streak.'
     : `${s === 1 ? 'First day of a streak' : `${s}-day streak`}. A new ten tomorrow.`;
   $('share').hidden = game.practice;
+  drawRecord(score);
   const miss = game.practice ? null : L.missedDay(game.day, (k) => store.get('fn:' + k, []).length >= game.pairs.length);
   $('earlier').hidden = !miss;
   if (miss) { $('earlier').href = `?day=${miss}`; $('earlier').textContent = miss === L.prevDay(L.dayKey()) ? "Missed yesterday? Play yesterday's ten" : `Play the ten from ${miss}`; }
@@ -174,6 +175,32 @@ function drawEnd() {
       why.append(p, mapSvg(a, b));
     });
     li.append(det);
+    return li;
+  }));
+}
+
+// Every daily ten finished on this device (today's, or an earlier one via ?day=), with
+// the score this ten got highlighted. Practice tens are not part of it.
+function drawRecord(score) {
+  $('rec').hidden = game.practice;
+  if (game.practice) return;
+  const scores = [];
+  for (let d = L.dayKey(); d >= L.FIRST_DAY; d = L.prevDay(d)) {
+    const s = L.dayScore(W.cities, d, store.get('fn:' + d, null));
+    if (s != null) scores.push(s);
+  }
+  const r = L.record(scores, game.pairs.length);
+  const best = L.bestStreak(store.get('fn:days', []));
+  $('recline').textContent = `${r.played} played · average ${r.avg.toFixed(1)} · best streak ${best}`;
+  const top = Math.max(1, ...r.dist);
+  $('dist').replaceChildren(...r.dist.map((c, s) => {
+    const li = document.createElement('li');
+    if (s === score) li.className = 'me';
+    li.title = `${c} ${c === 1 ? 'ten' : 'tens'} scored ${s}`;
+    li.setAttribute('aria-label', li.title);
+    const bar = document.createElement('i'); bar.style.height = `${(c / top) * 70}%`;
+    const n = document.createElement('span'); n.textContent = String(s);
+    li.append(bar, n);
     return li;
   }));
 }

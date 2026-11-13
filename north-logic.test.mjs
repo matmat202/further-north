@@ -44,6 +44,24 @@ eq('streak breaks on a gap', L.streak(['2026-10-23', '2026-10-25', '2026-10-26']
 eq('streak across a month end', L.streak(['2026-09-30', '2026-10-01'], '2026-10-01'), 2);
 eq('no streak', L.streak(['2026-10-20'], '2026-10-26'), 0);
 
+// --- the record (played, average, best streak, distribution) ---------------------------
+eq('best streak is the longest run, not the current one',
+  L.bestStreak(['2026-10-26', '2026-10-27', '2026-10-28', '2026-11-01', '2026-11-02']), 3);
+eq('best streak in any order, across a month end', L.bestStreak(['2026-11-01', '2026-10-30', '2026-10-31', '2026-10-05']), 3);
+eq('best streak of nothing', L.bestStreak([]), 0);
+eq('best streak counts a day once', L.bestStreak(['2026-10-26', '2026-10-26']), 1);
+eq('next day crosses a month', L.nextDay('2026-10-31'), '2026-11-01');
+eq('record: played, average to one place, distribution', L.record([9, 7, 9], 10),
+  { played: 3, avg: 8.3, dist: [0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0] });
+eq('record of nothing', L.record([], 3), { played: 0, avg: 0, dist: [0, 0, 0, 0] });
+{
+  const toy = [['N', 'X', 50, 0, 1], ['S', 'Y', 10, 100, 1], ['M', 'Z', 30, -100, 1], ['Q', 'W', 20, 50, 1]];
+  const P = L.pairsFor(toy, 'd', 2), C = toy.map(L.city);
+  const right = P.map(([i, j]) => L.northIndex(C[i], C[j]));
+  eq('day score: all right', L.dayScore(toy, 'd', right.slice()).valueOf(), P.length);
+  eq('day score: one wrong', L.dayScore(toy, 'd', right.map((r, k) => (k ? r : 1 - r))), P.length - 1);
+  eq('day score: unfinished is null', L.dayScore(toy, 'd', right.slice(0, -1)), null);
+}
 // --- earlier days (?day=) ----------------------------------------------------------------
 eq('prevDay crosses a month', [L.prevDay('2026-11-01'), L.prevDay('2027-01-01')], ['2026-10-31', '2026-12-31']);
 eq('pastDay takes an earlier real day', L.pastDay('2026-10-27', '2026-10-30'), '2026-10-27');
