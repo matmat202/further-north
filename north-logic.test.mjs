@@ -88,15 +88,16 @@ eq('Sydney is south', by('Sydney', 'Australia').lat, -33.87);
 eq('the textbook surprise holds: Rome is north of New York', L.northIndex(rome, nyc), 0);
 ok('no district of a city: Puxi and Pudong are Shanghai', !W.cities.some((r) => ['Puxi', 'Pudong', 'New Territories'].includes(r[0])));
 ok('a few hundred cities', W.cities.length >= 300 && W.cities.length <= 600, `got ${W.cities.length}`);
-ok('every row is [name, country, lat, lon, pop]', W.cities.every((r) => r.length === 5 && typeof r[0] === 'string'
-  && r[0] && typeof r[1] === 'string' && Math.abs(r[2]) <= 90 && Math.abs(r[3]) <= 180 && r[4] > 0));
+ok('every row is [name, country, lat, lon, pop, pools]', W.cities.every((r) => r.length === 6 && typeof r[0] === 'string'
+  && r[0] && typeof r[1] === 'string' && Math.abs(r[2]) <= 90 && Math.abs(r[3]) <= 180 && r[4] > 0 && [1, 2, 3].includes(r[5])));
 ok('one city per name and country', new Set(W.cities.map((r) => r[0] + '|' + r[1])).size === W.cities.length);
 // Names as the world writes them (2026-11-14): asciiname had shown players "UEruemqi",
 // "Koeln", "Lome". Each of these is GeoNames' own UTF-8 name for the city.
 for (const [n, c] of [['Zürich', 'Switzerland'], ['Ürümqi', 'China'], ['Köln', 'Germany'], ['Łódź', 'Poland'],
   ['São Paulo', 'Brazil'], ['Lomé', 'Togo'], ['Bogotá', 'Colombia'], ['Iași', 'Romania']]) ok(`${n} is spelled as written`, !!by(n, c));
-ok('no asciiname transliterations left', !W.cities.some((r) => /^UE|ue(?:r|m|ss)|oeln|Zuer/.test(r[0])),
-  W.cities.filter((r) => /^UE|ue(?:r|m|ss)|oeln|Zuer/.test(r[0])).map((r) => r[0]).join());
+// (?<!q): Albuquerque is spelled that way.
+ok('no asciiname transliterations left', !W.cities.some((r) => /^UE|(?<!q)ue(?:r|m|ss)|oeln|Zuer/.test(r[0])),
+  W.cities.filter((r) => /^UE|(?<!q)ue(?:r|m|ss)|oeln|Zuer/.test(r[0])).map((r) => r[0]).join());
 ok('no scholarly transliteration marks (U+1E00-1EFF)', !W.cities.some((r) => /[\u1e00-\u1eff]/.test(r[0])));
 ok('country codes were resolved to names', W.cities.every((r) => r[1].length > 2));
 ok('both hemispheres are in the pool', W.cities.some((r) => r[2] < -30) && W.cities.some((r) => r[2] > 55));
@@ -104,17 +105,19 @@ ok('the land path is there and in the viewBox', /^M-?\d/.test(W.land) && W.land.
   && W.land.match(/-?\d+(\.\d)?/g).every((v) => Math.abs(+v) <= 180));
 
 // --- a day's ten, on the real pool -----------------------------------------------------
-for (const day of ['2026-10-26', '2026-10-27', '2027-02-29', '2030-12-31', 'practice-1']) {
-  const P = L.pairsFor(W.cities, day);
-  const C = W.cities.map(L.city);
+for (const day of ['2026-10-26', '2026-10-27', '2026-11-17', '2026-11-18', '2027-02-29', '2030-12-31', 'practice-1']) {
+  const pool = L.poolFor(W.cities, day);
+  const P = L.pairsFor(pool, day);
+  const C = pool.map(L.city);
   eq(`${day}: ten rounds`, P.length, L.ROUNDS);
   ok(`${day}: no city twice`, new Set(P.flat()).size === 2 * P.length);
   ok(`${day}: every pair inside its own band`, P.every(([i, j], k) => L.fits(C[i], C[j], L.BANDS[k])),
     JSON.stringify(P.map(([i, j]) => [C[i].name, C[j].name])));
   ok(`${day}: north is not always on one side`, new Set(P.map(([i, j]) => L.northIndex(C[i], C[j]))).size === 2);
-  eq(`${day}: the same day gives the same ten`, L.pairsFor(W.cities, day), P);
+  eq(`${day}: the same day gives the same ten`, L.pairsFor(L.poolFor(W.cities, day), day), P);
 }
-ok('different days give different tens', JSON.stringify(L.pairsFor(W.cities, '2026-10-26')) !== JSON.stringify(L.pairsFor(W.cities, '2026-10-27')));
+const deal = (d) => { const p = L.poolFor(W.cities, d); return L.pairsFor(p, d).map(([i, j]) => [p[i], p[j]]); };
+ok('different days give different tens', JSON.stringify(deal('2026-10-26')) !== JSON.stringify(deal('2026-10-27')));
 // Days already served, pinned by name. Everyone gets the same ten on a day (the share text
 // compares scores) and ?day= replays a past day against picks stored by round, so a change
 // to the hash, the rng, a band or the search that re-deals a served day breaks both. These
@@ -149,18 +152,46 @@ const SERVED = {
   '2026-11-11': ["Panama City|Macau","Erzincan|Wuhan","Mashhad|Houston","Denver|Peshawar","Lviv|Novosibirsk","Los Angeles|Lanzhou","Dushanbe|Salt Lake City","Mainz|Volgograd","Little Rock|Baghdad","Hohhot|Tirana"],
 };
 for (const [day, want] of Object.entries(SERVED)) {
-  eq(`${day}: the ten actually served, unchanged`, L.pairsFor(W.cities, day).map(([i, j]) => W.cities[i][0] + '|' + W.cities[j][0]), want);
+  eq(`${day}: the ten actually served, unchanged`, deal(day).map(([a, b]) => a[0] + '|' + b[0]), want);
 }
 // The deal is frozen, not just its served days (2026-11-11). Pinning only served days goes
 // stale every midnight: on 10-27 the band constants were left as "re-deal only future days",
-// and 15 days later those days had been played. So two years from launch are hashed. A
-// deliberate retune must start on a date not yet served, the way poolFile() does, and then
-// move this hash in the same commit.
-{
-  const days = []; for (let d = '2026-10-26'; days.length < 731; ) { days.push(d); const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + 1); d = x.toISOString().slice(0, 10); }
+// and 15 days later those days had been played. A deliberate retune must start on a date not
+// yet served and move the hash in the same commit — which the pool switch did (2026-11-16):
+// every day from launch to the eve of POOL_SWITCH was hashed with the code and world.json as
+// they were before it, and must still deal exactly that; two years from the switch are then
+// pinned under the new pool.
+const sha = async (days) => {
   const h = (await import('node:crypto')).createHash('sha256');
-  for (const d of days) h.update(d + JSON.stringify(L.pairsFor(W.cities, d)));
-  eq('two years of tens from launch, unchanged', h.digest('hex'), '9e6ce63caac326819dc05033ab54d74a77783bdf986e34fa73b489fb7b8e20c4');
+  for (const d of days) h.update(d + JSON.stringify(L.pairsFor(L.poolFor(W.cities, d), d)));
+  return h.digest('hex');
+};
+{
+  const before = []; for (let d = L.FIRST_DAY; d < L.POOL_SWITCH; d = L.nextDay(d)) before.push(d);
+  eq('every launch-pool day deals what it dealt before the switch', [before.length, await sha(before)],
+    [23, '7e6360770dd7ff5b2ed79984e7bb71360020753715df0129a81f757ac6d3037c']);
+  const after = []; for (let d = L.POOL_SWITCH; after.length < 731; d = L.nextDay(d)) after.push(d);
+  eq('two years of tens from the switch, unchanged', await sha(after), 'd13e6523449c7a79755f5b5c5d62f7e705251ffd3fffee6e0d0c5386ee563c19');
+  const launch = L.poolFor(W.cities, '2026-11-17').map((r) => r.slice(0, 5));
+  eq('the launch pool is the launch world.json row for row',
+    (await import('node:crypto')).createHash('sha256').update(JSON.stringify(launch)).digest('hex'),
+    '86d943293857e093484dcc53cdcef0dcdb826235fa2a488ec2ec1c65717923d9');
+}
+// --- the pool switch: famous cities in from POOL_SWITCH, the launch rule's oddities out ---
+{
+  const inPool = (d, n) => L.poolFor(W.cities, d).some((r) => r[0] === n);
+  for (const n of ['Toronto', 'Milan', 'Osaka', 'Miami', 'Seattle', 'Auckland', 'Lyon', 'Manchester'])
+    ok(`${n} is in the pool from the switch`, inPool(L.POOL_SWITCH, n) && inPool('practice-1', n) && !inPool('2026-11-17', n));
+  for (const n of ['Thanjavur', 'Erzincan', 'Kremenchuk', 'Jamnagar'])
+    ok(`${n} leaves the pool at the switch`, inPool('2026-11-17', n) && !inPool(L.POOL_SWITCH, n));
+  // kept although their GeoNames id matched no Wikidata city article (under 30 = unmatched)
+  for (const n of ['São Paulo', 'Hong Kong', 'Naples', 'Geneva', 'Shenzhen'])
+    ok(`${n} stays in the pool`, inPool(L.POOL_SWITCH, n));
+  ok('every capital is in both pools', W.cities.filter((r) => r[5] & 1 && ['Paris', 'Ottawa', 'Canberra', 'Abuja', 'Thimphu'].includes(r[0])).every((r) => r[5] === 3));
+  ok('no borough of New York City', !W.cities.some((r) => r[0] === 'Manhattan'));
+  const sizes = [L.poolFor(W.cities, '2026-11-17').length, L.poolFor(W.cities, L.POOL_SWITCH).length];
+  ok('both pools a few hundred cities', sizes.every((n) => n >= 350 && n <= 550), JSON.stringify(sizes));
+  ok('the switch is on a day no one had played when it shipped (2026-11-16)', L.POOL_SWITCH > '2026-11-17');
 }
 
 // --- boundaries the cases above never stood on (bin/mutate survivors, 2026-10-27) -------

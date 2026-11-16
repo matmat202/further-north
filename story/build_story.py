@@ -29,6 +29,7 @@ INFO = os.path.join(HERE, "data", "countryInfo.txt")
 OUT = os.environ.get("BUILD_OUT", os.path.join(HERE, "site", "story", "story.json"))
 N_SH, SEED, ROUNDS, N_DAYS = 1000, 20261116, 10, 365
 FIRST_DAY = "2026-10-26"
+POOL_SWITCH = "2026-11-18"  # north-logic.js: days before it deal from pool 1, the rest from pool 2
 URALS = 60
 
 # the game's own constants (site/north-logic.js)
@@ -97,6 +98,13 @@ def pairs_for(C, seed):
     return out
 
 
+def pool_pairs(C, d):
+    """The day's pairs as indices into the whole of world.json's cities (poolFor, then pairsFor)."""
+    bit = 1 if d < POOL_SWITCH else 2
+    idx = [n for n, c in enumerate(C) if c[5] & bit]
+    return [(idx[i], idx[j]) for i, j in pairs_for([C[n] for n in idx], d)]
+
+
 def days():
     import datetime
     d0 = datetime.date.fromisoformat(FIRST_DAY)
@@ -144,7 +152,7 @@ def main():
     capital = [cap[c[1]] == c[0] for c in C]
     pop = [c[4] for c in C]
     D = days()
-    pairs = [[k, i, j] for di, d in enumerate(D) for k, (i, j) in enumerate(pairs_for(C, d))]
+    pairs = [[k, i, j] for di, d in enumerate(D) for k, (i, j) in enumerate(pool_pairs(C, d))]
     same = lambda p: conts[p[1]] == conts[p[2]]
     # [key, label, kind, pairs]
     rows = [["europe", "the city in Europe", "eu", pairs], ["capital", "the capital", "cap", pairs], ["bigger", "the bigger city", "pop", pairs]]

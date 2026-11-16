@@ -15,7 +15,8 @@ let game = null; // { key, day, practice, pairs, picks }
 function start(practice, past = null) {
   const day = past || L.dayKey();
   const key = practice ? `practice-${Date.now().toString(36)}` : day;
-  game = { key, day, practice, past: !!past && !practice, pairs: L.pairsFor(W.cities, key), picks: practice ? [] : store.get('fn:' + day, []) };
+  C = L.poolFor(W.cities, key).map(L.city);
+  game = { key, day, practice, past: !!past && !practice, pairs: L.pairsFor(L.poolFor(W.cities, key), key), picks: practice ? [] : store.get('fn:' + day, []) };
   $('daily').hidden = !practice && !game.past;
   render();
 }
@@ -186,7 +187,7 @@ function drawRecord(score) {
   if (game.practice) return;
   const scores = [];
   for (let d = L.dayKey(); d >= L.FIRST_DAY; d = L.prevDay(d)) {
-    const s = L.dayScore(W.cities, d, store.get('fn:' + d, null));
+    const s = L.dayScore(L.poolFor(W.cities, d), d, store.get('fn:' + d, null));
     if (s != null) scores.push(s);
   }
   const r = L.record(scores, game.pairs.length);
@@ -228,8 +229,8 @@ document.addEventListener('keydown', (e) => {
 });
 
 fetch('data/world.json').then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then((w) => {
-  W = w; C = w.cities.map(L.city);
-  $('count').textContent = String(C.length);
+  W = w;
+  $('count').textContent = String(L.poolFor(w.cities, L.dayKey()).length);
   start(false, L.pastDay(new URLSearchParams(location.search).get('day'), L.dayKey()));
 }).catch((e) => {
   $('round').textContent = '';

@@ -28,6 +28,18 @@ export function rng(seed) {
   };
 }
 
+// The pool a ten is drawn from. world.json rows end in a bitmask of the pools a city is in
+// (build.py): 1 = the launch pool, 2 = the pool from POOL_SWITCH on, which has Toronto,
+// Milan and Osaka (the launch rule's alternate-name count was truncated in GeoNames' dump).
+// Days before the switch were played, and ?day= and the record re-deal them from the date,
+// so they keep the launch pool. Practice tens use the newest pool: "practice-…" sorts after
+// every date.
+export const POOL_SWITCH = '2026-11-18';
+export function poolFor(cities, key) {
+  const bit = key < POOL_SWITCH ? 1 : 2;
+  return cities.filter((r) => r[5] & bit);
+}
+
 export const city = (r) => ({ name: r[0], country: r[1], lat: r[2], lon: r[3], pop: r[4] });
 
 export function lonGap(a, b) {
