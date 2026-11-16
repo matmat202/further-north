@@ -12,6 +12,13 @@ Everyone gets the same ten on the same day (seeded by the date), a new set at yo
 midnight. Your score, a streak, and a copyable result stay in your browser. After the
 daily ten you can play practice tens as long as you like.
 
+**A story:** [/story/](https://matmat202.github.io/further-north/story/) asks whether anything
+on the card tells you the answer, over the first year of daily tens. Picking the European city
+is right 77% of the time and 95% in round one, but by round eight about one random label in
+twenty does as well. Picking the capital is a coin flip; the bigger city loses, but only across
+continents. `story/build_story.py` is the program that made it; `node test/story.test.mjs` pins every
+sentence that depends on the data.
+
 Data: [GeoNames](https://www.geonames.org/) `cities15000` (CC BY 4.0) — the cities named
 in the most languages, plus every national capital, about 400 in all; coastlines from
 [Natural Earth](https://www.naturalearthdata.com/) 1:110m (public domain).

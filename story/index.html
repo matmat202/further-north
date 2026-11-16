@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bet on Europe, until round eight · Further North, a story</title>
+<meta name="description" content="A story from Further North: over a year of the game's daily tens, picking the European city is right three times in four, and nineteen in twenty in the first rounds. By round eight it is barely better than a random guess. Picking the capital is a coin flip, and the bigger city is more often the southern one, but only when the two are on different continents.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="plot" aria-hidden="true"></div>
+<p id="err" role="alert"></p>
+<main>
+
+<section class="step" data-step="rules"><div>
+  <p class="kicker">Further North · a story</p>
+  <h1>Bet on Europe, until round eight</h1>
+  <p>Each round of the game shows two cities, each with its country, and nothing else.
+  If you don’t know where the cities are, is there a rule you could play off the card?</p>
+  <p>I re-drew the game’s ten pairs for each of its first <b data-fact="n_days"></b> days,
+  <b data-fact="first"></b> to <b data-fact="last"></b>: <b data-fact="n_pairs"></b> pairs
+  among <b data-fact="n_used"></b> cities. A day’s ten is fixed by its date, so the days
+  still to come are already decided. For three rules, each red dot is how often the city
+  the rule picks was the further north, counting only the pairs where it picks one.</p>
+  <p>The grey is the test: the same rule played on a random label,
+  <b data-fact="n_sh"></b> times. Picking the European city is right
+  <b data-fact="rate:europe"></b> of the time, <span class="w">well clear of the grey</span>.
+  Picking the capital: <b data-fact="rate:capital"></b>, a coin flip. Picking the bigger
+  city: <b data-fact="rate:bigger"></b>. <span class="w">It loses.</span></p>
+  <p class="small"><span class="k up">the real rule</span> <span class="k down">a random label</span> · Scroll ↓</p>
+</div></section>
+
+<section class="step" data-step="rounds"><div>
+  <p class="kicker">Chapter 1 · The rounds get closer</p>
+  <h2>Nineteen in twenty, then barely better than luck</h2>
+  <p>The day’s ten start far apart and end close: in round one the two cities are
+  <b data-fact="band:1"></b> apart north to south, and in round ten only
+  <b data-fact="band:10"></b>.</p>
+  <p>In round one, the European city was the further north
+  <b data-fact="rate:r1"></b> of the time (<b data-fact="won:r1"></b> of
+  <b data-fact="n:r1"></b>). <span class="w">Nineteen in twenty.</span> It slides every
+  round after: <b data-fact="rate:r4"></b> in round four, <b data-fact="rate:r7"></b> in
+  round seven.</p>
+  <p>From round eight on it is <b data-fact="rate:r8"></b>, <b data-fact="rate:r9"></b>
+  and <b data-fact="rate:r10"></b>, and the red dot is inside the grey:
+  <b data-fact="high:r8"></b> of the <b data-fact="n_sh"></b> random labels do as well in
+  round eight, <b data-fact="high:r10"></b> in round ten. <span class="w">About one in
+  twenty</span> (round nine is a little clearer, at <b data-fact="high:r9"></b>), so if Europe still helps there, it is not by enough to show in a year
+  of games.</p>
+  <p>A likely reason, which these data do not test: every European city in the game is
+  north of 35°, so it wins whenever the gap is wider than a country. When the gap is
+  50 km, being in the far north tells you nothing.</p>
+</div></section>
+
+<section class="step" data-step="bigger"><div>
+  <p class="kicker">Chapter 2 · The rule that loses</p>
+  <h2>Size is not the clue</h2>
+  <p>Over the year, the bigger of the two cities was the further north only
+  <b data-fact="rate:bigger"></b> of the time; <span class="w">none</span> of
+  <b data-fact="n_sh"></b> random shuffles of the populations did as badly. So bet on the
+  smaller one?</p>
+  <p>Split the pairs. When the two cities are on different continents, the bigger one wins
+  <b data-fact="rate:across"></b>. When they are on the same continent it wins
+  <b data-fact="rate:within"></b>, and <b data-fact="low:within"></b> of the random
+  shuffles do as badly: <span class="w">inside the grey</span>.</p>
+  <p>So size was never the clue; the continent was. Of the <b data-fact="lost:across"></b>
+  cross-continent pairs the bigger city lost, <b data-fact="aseu"></b> were a big Asian
+  city against a smaller European one: Europe’s rule again, wearing a disguise.</p>
+</div></section>
+
+<section class="step" data-step="rules"><div>
+  <p class="kicker">Epilogue · What to tap</p>
+  <h2>Early on, Europe. Late, you have to know</h2>
+  <p>In the first two rounds of <a href="../">Further North</a>, when one of the cities is
+  in Europe, tap it: it will be wrong about one time in twenty. Being the capital tells you nothing, and
+  being the bigger city is only the continent again.</p>
+  <p>By the last three rounds, nothing on the card helps. That is the game working: those
+  rounds are won by knowing where the cities are, which is the only thing it was meant to test.</p>
+  <p class="small">Data: the game’s own <a href="https://www.geonames.org/">GeoNames</a>
+  <code>cities15000</code> pool (CC BY 4.0), <b data-fact="n_cities"></b> cities, and the
+  game’s <code>pairsFor</code> for each day. Continents and capitals are from GeoNames’
+  <code>countryInfo.txt</code>: <b data-fact="n_cap"></b> capitals and
+  <b data-fact="n_eu"></b> European cities, where Russia’s cities east of the Urals
+  (<b data-fact="urals"></b>) count as Asia; GeoNames files Novosibirsk under Europe, and
+  no player would. The random labels for “Europe” and “capital” stick the label on as many
+  cities picked at random; for “bigger”, the populations are shuffled among the cities.
+  The program is
+  <a href="https://github.com/matmat202/further-north/blob/main/story/build_story.py">in the
+  repository</a>.</p>
+</div></section>
+
+</main>
+<script type="module" src="story.js"></script>
+</body>
+</html>
