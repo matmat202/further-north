@@ -216,5 +216,37 @@ const sha = async (days) => {
   ok('a tiny pool widens the band rather than hang', P.length === 1, JSON.stringify(P));
 }
 
+// --- the widening fallback, which the real pool never reaches (2026-11-19) -------------
+// 13 survivors had been accepted as equivalent and the sweep says each changes a deal:
+// the try count, the widen count and its factor only act once a band runs dry, and no
+// day of the real pool ever runs one dry, so the frozen hashes above cannot see them.
+// A deal is still a function of its date whatever the pool, so these are pinned too.
+{
+  // Band 0 is [10, 18]: a gap of 0.5 fits only at the SIXTH widening, [10/32, 18*32];
+  // a gap of 0.2 would need a seventh, so that pool deals nothing.
+  eq('a pair that fits only at the last widening is found', L.pairsFor([['P', 'X', 10, 0, 1], ['Q', 'Y', 10.5, 100, 1]], 'd', 1), [[1, 0]]);
+  eq('...and one that would need a seventh is not', L.pairsFor([['P', 'X', 10, 0, 1], ['Q', 'Y', 10.2, 100, 1]], 'd', 1), []);
+  // Five dry levels spend exactly 5 x 4000 tries before the sixth deals, so which way
+  // round the pair comes out depends on that count; 20 seeds, so one lucky parity cannot hide it.
+  eq('the last-widening pair, 20 seeds, each the way round it always was',
+    'abcdefghijklmnopqrst'.split('').map((s) => L.pairsFor([['P', 'X', 10, 0, 1], ['Q', 'Y', 10.5, 100, 1]], s, 1)[0].join('')).join(''),
+    '0110101010100101101001101010100101101010');
+  // Round 1 fits as dealt; rounds 2-3 exhaust 4000 tries and widen, so which pair they land
+  // on depends on exactly how many draws each level spent.
+  const wide = [['A', 'X', 0, 0, 1], ['B', 'Y', 30, 60, 1], ['C', 'Z', -25, -80, 1], ['D', 'W', 52, 140, 1], ['E', 'V', 4, -150, 1], ['F', 'U', 70, 100, 1]];
+  eq('a pool that has to widen deals the same ten as ever', ['a', 'b'].map((s) => L.pairsFor(wide, s, 3)),
+    [[[5, 3], [0, 4], [1, 2]], [[5, 3], [4, 0], [2, 1]]]);
+  const r = L.rng(L.hash('2026-11-19'));
+  eq('rng: the stream is pinned', [r(), r(), r()], [0.041265806183218956, 0.9250363318715245, 0.16971850977279246]);
+  // More rounds than bands: the rest stay in the last (hardest) band.
+  const P = L.pairsFor(L.poolFor(W.cities, 'practice-1'), 'practice-1', L.BANDS.length + 2), C = L.poolFor(W.cities, 'practice-1').map(L.city);
+  ok('more rounds than bands: all dealt, the extra ones in the last band',
+    P.length === L.BANDS.length + 2 && P.slice(L.BANDS.length - 1).every(([i, j]) => L.fits(C[i], C[j], L.BANDS[L.BANDS.length - 1])), JSON.stringify(P.slice(-3)));
+  eq('city: pop is the fifth column', L.city(['N', 'C', 1, 2, 345, 3]).pop, 345);
+  eq('lonGap: -180 and 180 are one meridian', L.lonGap({ lon: -180 }, { lon: 180 }), 0);
+  // app.js orders "X is north of Y" by northIndex; on a tie it names the left city first.
+  eq('northIndex: a tie points left', L.northIndex({ lat: 12 }, { lat: 12 }), 0);
+}
+
 console.log(`${fail ? 'FAIL' : 'ok'} north-logic: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
