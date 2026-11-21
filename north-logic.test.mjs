@@ -93,11 +93,20 @@ ok('every row is [name, country, lat, lon, pop, pools]', W.cities.every((r) => r
 ok('one city per name and country', new Set(W.cities.map((r) => r[0] + '|' + r[1])).size === W.cities.length);
 // Names as the world writes them (2026-11-14): asciiname had shown players "UEruemqi",
 // "Koeln", "Lome". Each of these is GeoNames' own UTF-8 name for the city.
-for (const [n, c] of [['Zürich', 'Switzerland'], ['Ürümqi', 'China'], ['Köln', 'Germany'], ['Łódź', 'Poland'],
+for (const [n, c] of [['Zürich', 'Switzerland'], ['Ürümqi', 'China'], ['Düsseldorf', 'Germany'], ['Łódź', 'Poland'],
   ['São Paulo', 'Brazil'], ['Lomé', 'Togo'], ['Bogotá', 'Colombia'], ['Iași', 'Romania']]) ok(`${n} is spelled as written`, !!by(n, c));
 // (?<!q): Albuquerque is spelled that way.
 ok('no asciiname transliterations left', !W.cities.some((r) => /^UE|(?<!q)ue(?:r|m|ss)|oeln|Zuer/.test(r[0])),
   W.cities.filter((r) => /^UE|(?<!q)ue(?:r|m|ss)|oeln|Zuer/.test(r[0])).map((r) => r[0]).join());
+// ...unless English has its own name for the city (2026-11-21): the recap had read "Dushanbe
+// is north of Sevilla", and players do not know Köln, Makkah or Ulan Bator by those names.
+for (const [n, c] of [['Cologne', 'Germany'], ['Seville', 'Spain'], ['Mecca', 'Saudi Arabia'], ['Ulaanbaatar', 'Mongolia'],
+  ['Washington, D.C.', 'United States'], ['Quebec City', 'Canada'], ['Montreal', 'Canada'], ['Nizhny Novgorod', 'Russia']])
+  ok(`${n} has its English name`, !!by(n, c));
+{
+  const local = ['Köln', 'Sevilla', 'Makkah', 'Madinah', 'Ulan Bator', 'Hannover', 'Frankfurt am Main', 'Québec', 'Montréal', 'Nay Pyi Taw', 'Nizhniy Novgorod'];
+  ok('no local name where English has its own', !W.cities.some((r) => local.includes(r[0])), W.cities.filter((r) => local.includes(r[0])).map((r) => r[0]).join());
+}
 ok('no scholarly transliteration marks (U+1E00-1EFF)', !W.cities.some((r) => /[\u1e00-\u1eff]/.test(r[0])));
 ok('country codes were resolved to names', W.cities.every((r) => r[1].length > 2));
 ok('both hemispheres are in the pool', W.cities.some((r) => r[2] < -30) && W.cities.some((r) => r[2] > 55));
@@ -127,28 +136,28 @@ ok('different days give different tens', JSON.stringify(deal('2026-10-26')) !== 
 // then what happens to the days already played. "Reproduces itself" above cannot see any of it.
 const SERVED = {
   '2026-10-26': ['Peshawar|Paris', 'Bandar Abbas|Nashville', 'Haikou|Dakar', 'Shijiazhuang|Beersheba',
-    'Delhi|Madinah', 'São Paulo|Mbabane', "Mosul|Xi’an", 'Denver|Yinchuan', 'Algiers|Taiyuan', 'Tyumen|Gothenburg'],
+    'Delhi|Medina', 'São Paulo|Mbabane', "Mosul|Xi’an", 'Denver|Yinchuan', 'Algiers|Taiyuan', 'Tyumen|Gothenburg'],
   '2026-10-27': ['Wuxi|Ottawa', 'Jamshedpur|Baghdad', 'Wuhan|Tunis', 'Yuzhno-Sakhalinsk|Düsseldorf',
-    'Yerevan|Nashville', 'Kremenchuk|Québec', 'Havana|Honolulu', 'Adıyaman|Pyongyang', 'Prague|Astana',
+    'Yerevan|Nashville', 'Kremenchuk|Quebec City', 'Havana|Honolulu', 'Adıyaman|Pyongyang', 'Prague|Astana',
     'Luxembourg|Blagoveshchensk'],
   // Served since (bin/mutate survivors, 2026-11-11): the band and search constants were left
   // as "re-deal only future days" when two days were pinned, but every day since has been
   // played. Dealt by this north-logic.js and world.json, byte-identical to the live site
   // on 2026-11-11 and unchanged in git since 2026-10-27. 11-11 is served east of UTC.
-  '2026-10-28': ["Honolulu|Dushanbe","Mainz|Yinchuan","Zürich|Philadelphia","Sanaa|Ho Chi Minh City","Santiago|Maseru","Ashgabat|Rabat","Grozny|Geneva","Changsha|Al 'Ashir min Ramadan","Abidjan|Georgetown","Algiers|Şanlıurfa"],
-  '2026-10-29': ["Tegucigalpa|Nairobi","Kuwait City|Seoul","Shijiazhuang|Florence","Astrakhan|Leipzig","Providence|Xining","Alexandria|Xi’an","Montevideo|Melbourne","Bishkek|Bucharest","Jinan|Sevilla","Ho Chi Minh City|Djibouti"],
-  '2026-10-30': ["Las Vegas|Guangzhou","Lhasa|Diyarbakır","Doha|Haikou","Düsseldorf|Harbin","Hannover|Ulan Bator","Bishkek|Geneva","Busan|Tripoli","Rawalpindi|Oklahoma City","Nouakchott|Mumbai","Wuxi|Alexandria"],
-  '2026-10-31': ["Yuzhno-Sakhalinsk|Damascus","Nassau|Kyoto","Edirne|Kabul","Petah Tiqva|Incheon","Taiyuan|Istanbul","Dubai|Foshan","Bursa|San Jose","Little Rock|Jinan","Quito|Libreville","Bishkek|Marseille"],
-  '2026-11-01': ["Zagreb|Suzhou","Paris|Tashkent","Yantai|Gaza","Istanbul|Harbin","Nanning|Manama","Washington|Antakya","Seoul|Bursa","Jeddah|Havana","Chattogram|Ta’if","Kabul|Gwangju"],
-  '2026-11-02': ["Katowice|Tangshan","Oradea|Novosibirsk","Muscat|Guatemala City","Bratislava|Ürümqi","Oxford|Ulan Bator","Tunis|Srinagar","Nashville|Pyongyang","Rawalpindi|Yokohama","Qingdao|Latakia","New York City|Yerevan"],
+  '2026-10-28': ["Honolulu|Dushanbe","Mainz|Yinchuan","Zürich|Philadelphia","Sanaa|Ho Chi Minh City","Santiago|Maseru","Ashgabat|Rabat","Grozny|Geneva","Changsha|10th of Ramadan City","Abidjan|Georgetown","Algiers|Şanlıurfa"],
+  '2026-10-29': ["Tegucigalpa|Nairobi","Kuwait City|Seoul","Shijiazhuang|Florence","Astrakhan|Leipzig","Providence|Xining","Alexandria|Xi’an","Montevideo|Melbourne","Bishkek|Bucharest","Jinan|Seville","Ho Chi Minh City|Djibouti"],
+  '2026-10-30': ["Las Vegas|Guangzhou","Lhasa|Diyarbakır","Doha|Haikou","Düsseldorf|Harbin","Hanover|Ulaanbaatar","Bishkek|Geneva","Busan|Tripoli","Rawalpindi|Oklahoma City","Nouakchott|Mumbai","Wuxi|Alexandria"],
+  '2026-10-31': ["Yuzhno-Sakhalinsk|Damascus","Nassau|Kyoto","Edirne|Kabul","Petah Tikva|Incheon","Taiyuan|Istanbul","Dubai|Foshan","Bursa|San Jose","Little Rock|Jinan","Quito|Libreville","Bishkek|Marseille"],
+  '2026-11-01': ["Zagreb|Suzhou","Paris|Tashkent","Yantai|Gaza City","Istanbul|Harbin","Nanning|Manama","Washington, D.C.|Antakya","Seoul|Bursa","Jeddah|Havana","Chattogram|Ta’if","Kabul|Gwangju"],
+  '2026-11-02': ["Katowice|Tangshan","Oradea|Novosibirsk","Muscat|Guatemala City","Bratislava|Ürümqi","Oxford|Ulaanbaatar","Tunis|Srinagar","Nashville|Pyongyang","Rawalpindi|Yokohama","Qingdao|Latakia","New York City|Yerevan"],
   '2026-11-03': ["Milwaukee|Yangzhou","Nassau|Las Vegas","Jamshedpur|Fort-de-France","Jakarta|Mamoudzou","Xi’an|New Orleans","Ürümqi|Yerevan","Baku|Incheon","Lahore|Tripoli","Phoenix|Srinagar","Zhengzhou|Latakia"],
   '2026-11-04': ["Pune|Kyoto","Boston|Jalandhar","Managua|Bandar Seri Begawan","Xiamen|Kingston","Nairobi|Kuala Lumpur","Yinchuan|Plovdiv","Sofia|New York City","Santiago|Adelaide","Baghdad|Nanjing","Islamabad|Rabat"],
-  '2026-11-05': ["Tangshan|Brussels","Ürümqi|Kyoto","Shijiazhuang|Ottawa","Jinan|Shymkent","London|Québec","Yokohama|Gaza","Changzhou|Phoenix","San Jose|Aleppo","Seoul|Las Vegas","Xining|Nashville"],
-  '2026-11-06': ["Hong Kong|Las Vegas","Al 'Ashir min Ramadan|Haikou","Bridgetown|Juba","Srinagar|Philadelphia","Hangzhou|Damascus","Little Rock|Athens","Beijing|Şanlıurfa","Ahmedabad|Honolulu","Baghdad|Los Angeles","Deir ez-Zor|Busan"],
-  '2026-11-07': ["Dublin|Deir ez-Zor","Vienna|Yantai","Yaoundé|Thanjavur","Fuzhou|Tripoli","Madrid|Nicosia","Québec|Cherkasy","Mashhad|Pyongyang","Barcelona|Grozny","Jeju City|Peshawar","Madinah|Kunming"],
-  '2026-11-08': ["Astana|Philadelphia","San Diego|Rome","San Francisco|Grozny","Doha|Wuhan","Tianjin|Milwaukee","Şanlıurfa|Anshan","Yerevan|Taiyuan","Al 'Ashir min Ramadan|Suzhou","Jerusalem|Yangzhou","Bishkek|Skopje"],
+  '2026-11-05': ["Tangshan|Brussels","Ürümqi|Kyoto","Shijiazhuang|Ottawa","Jinan|Shymkent","London|Quebec City","Yokohama|Gaza City","Changzhou|Phoenix","San Jose|Aleppo","Seoul|Las Vegas","Xining|Nashville"],
+  '2026-11-06': ["Hong Kong|Las Vegas","10th of Ramadan City|Haikou","Bridgetown|Juba","Srinagar|Philadelphia","Hangzhou|Damascus","Little Rock|Athens","Beijing|Şanlıurfa","Ahmedabad|Honolulu","Baghdad|Los Angeles","Deir ez-Zor|Busan"],
+  '2026-11-07': ["Dublin|Deir ez-Zor","Vienna|Yantai","Yaoundé|Thanjavur","Fuzhou|Tripoli","Madrid|Nicosia","Quebec City|Cherkasy","Mashhad|Pyongyang","Barcelona|Grozny","Jeju City|Peshawar","Medina|Kunming"],
+  '2026-11-08': ["Astana|Philadelphia","San Diego|Rome","San Francisco|Grozny","Doha|Wuhan","Tianjin|Milwaukee","Şanlıurfa|Anshan","Yerevan|Taiyuan","10th of Ramadan City|Suzhou","Jerusalem|Yangzhou","Bishkek|Skopje"],
   '2026-11-09': ["Lhasa|Salt Lake City","Aleppo|Xiamen","Islamabad|Shenyang","New Orleans|Shantou","Ashgabat|Little Rock","Rostov-on-Don|Brussels","Libreville|Mogadishu","Qingdao|Srinagar","Chicago|Pristina","Muscat|Dongguan"],
-  '2026-11-10': ["Boston|Guiyang","Guatemala City|Manama","Abuja|Yangon","Gwangju|Tirana","Yaoundé|Panama City","Marseille|New York City","Dushanbe|Naples","Jinan|Little Rock","Yinchuan|Denver","Rostov-on-Don|Ulan Bator"],
+  '2026-11-10': ["Boston|Guiyang","Guatemala City|Manama","Abuja|Yangon","Gwangju|Tirana","Yaoundé|Panama City","Marseille|New York City","Dushanbe|Naples","Jinan|Little Rock","Yinchuan|Denver","Rostov-on-Don|Ulaanbaatar"],
   '2026-11-11': ["Panama City|Macau","Erzincan|Wuhan","Mashhad|Houston","Denver|Peshawar","Lviv|Novosibirsk","Los Angeles|Lanzhou","Dushanbe|Salt Lake City","Mainz|Volgograd","Little Rock|Baghdad","Hohhot|Tirana"],
 };
 for (const [day, want] of Object.entries(SERVED)) {
@@ -175,7 +184,12 @@ const sha = async (days) => {
   const launch = L.poolFor(W.cities, '2026-11-17').map((r) => r.slice(0, 5));
   eq('the launch pool is the launch world.json row for row',
     (await import('node:crypto')).createHash('sha256').update(JSON.stringify(launch)).digest('hex'),
-    '86d943293857e093484dcc53cdcef0dcdb826235fa2a488ec2ec1c65717923d9');
+    '5ec6ea7500eee70d94c575766be7680d0d6183b8099221e1a849789987915413');
+  // Re-pinned 2026-11-21 when 18 cities took their English names (Köln -> Cologne): every
+  // column but the name is still the launch file's, byte for byte.
+  eq('the launch pool, names aside, is unchanged since launch',
+    (await import('node:crypto')).createHash('sha256').update(JSON.stringify(launch.map((r) => r.slice(1)))).digest('hex'),
+    '867ef3e15b1583f5779ed16d1270e27f966e8a35d667544b5426020e1dee0380');
 }
 // --- the pool switch: famous cities in from POOL_SWITCH, the launch rule's oddities out ---
 {
