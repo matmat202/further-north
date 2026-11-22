@@ -262,5 +262,32 @@ const sha = async (days) => {
   eq('northIndex: a tie points left', L.northIndex({ lat: 12 }, { lat: 12 }), 0);
 }
 
+// --- the reveal map's window (2026-11-22) ------------------------------------------------
+// 518 of the 3650 rounds dealt 2026-11-22..2027-11-21 pair cities more than 180° of
+// longitude apart; they used to get the whole world with the cities at its two edges.
+{
+  const kobe = { lat: 34.69, lon: 135.18 }, fw = { lat: 32.73, lon: -97.32 };
+  const v = L.mapView(kobe, fw), u = L.mapView(fw, kobe);
+  eq('map: a Pacific pair is framed the short way (128° + 40)', Math.round(v.w), 168);
+  eq('map: either order gives the same window', [u.x, u.w, u.ax, u.bx], [v.x, v.w, v.bx, v.ax]);
+  eq('map: the western city is moved east of the dateline', [v.ax, Math.round(v.bx * 100) / 100], [135.18, 262.68]);
+  ok('map: Pacific window straddles 180', v.x < 180 && v.x + v.w > 180, JSON.stringify(v));
+  // a pair that does not cross keeps its old window exactly (golden from the pre-change code)
+  eq('map: Rome/New York window unchanged', L.mapView(A, B), { x: -94, y: -72.925, w: 126.5, h: 63.25, ax: 12.5, bx: -74 });
+  eq('map: a close pair zooms no tighter than 70°', L.mapView({ lat: 50, lon: -170 }, { lat: 40, lon: -169 }).x, -180);
+  // every round of the coming year: both cities inside, and no window wider than 220°
+  let bad = 0, widest = 0, d = '2026-11-22';
+  for (let n = 0; n < 365; n++, d = L.nextDay(d)) {
+    const p = L.poolFor(W.cities, d), C = p.map(L.city);
+    for (const [i, j] of L.pairsFor(p, d)) {
+      const m = L.mapView(C[i], C[j]); widest = Math.max(widest, m.w);
+      const inside = (cx, lat) => cx > m.x && cx < m.x + m.w && -lat > m.y && -lat < m.y + m.h;
+      if (!inside(m.ax, C[i].lat) || !inside(m.bx, C[j].lat) || Math.abs(m.ax - m.bx) > 180) bad++;
+    }
+  }
+  eq('map: every city of the year sits inside its window, the short way round', bad, 0);
+  ok('map: no window of the year is wider than 220°', widest <= 220, `widest ${widest}`);
+}
+
 console.log(`${fail ? 'FAIL' : 'ok'} north-logic: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

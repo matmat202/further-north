@@ -108,15 +108,7 @@ function drawMap(a, b) { $('map').replaceChildren(mapSvg(a, b)); }
 
 // The map, zoomed to the pair: a line at each city's latitude makes the answer visible.
 function mapSvg(a, b) {
-  const wrap = Math.abs(a.lon - b.lon) > 180;
-  let x = -180, w = 360;
-  if (!wrap) {
-    const lo = Math.min(a.lon, b.lon), hi = Math.max(a.lon, b.lon);
-    w = Math.min(360, Math.max(70, hi - lo + 40));
-    x = Math.max(-180, Math.min(180 - w, (lo + hi) / 2 - w / 2));
-  }
-  const h = w / 2;
-  const y = Math.max(-85, Math.min(85 - h, -(a.lat + b.lat) / 2 - h / 2));
+  const { x, y, w, h, ax, bx } = L.mapView(a, b);
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
   svg.setAttribute('role', 'img');
@@ -131,7 +123,7 @@ function mapSvg(a, b) {
   const north = L.northIndex(a, b);
   [a, b].forEach((c, i) => {
     const cls = i ? 'b' : 'a';
-    const [cx, cy] = L.xy(c);
+    const [, cy] = L.xy(c), cx = i ? bx : ax;
     el('line', { class: 'll ' + cls, x1: x, x2: x + w, y1: cy, y2: cy });
     el('circle', { class: cls, cx, cy, r });
     const t = el('text', { class: cls, x: cx, y: i === north ? cy - fs * 0.7 : cy + fs * 1.3,

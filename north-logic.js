@@ -190,3 +190,19 @@ export function dayScore(cities, day, picks) {
 
 // Map position in the land path's viewBox (-180 -90 360 180).
 export const xy = (c) => [c.lon, -c.lat];
+
+// The reveal map's window, zoomed to the pair: x y w h in xy()'s space, plus each city's
+// x inside it. A pair more than 180° apart is framed the short way, across the dateline
+// (Kobe and Fort Worth meet over the Pacific), so one city's x is shifted by 360 and the
+// window may run past 180 — the page repeats the land either side to fill it.
+export function mapView(a, b) {
+  let ax = a.lon, bx = b.lon;
+  if (Math.abs(ax - bx) > 180) { if (ax < bx) ax += 360; else bx += 360; }
+  const lo = Math.min(ax, bx), hi = Math.max(ax, bx);
+  const w = Math.min(360, Math.max(70, hi - lo + 40));
+  let x = (lo + hi) / 2 - w / 2;
+  if (hi <= 180) x = Math.max(-180, Math.min(180 - w, x));
+  const h = w / 2;
+  const y = Math.max(-85, Math.min(85 - h, -(a.lat + b.lat) / 2 - h / 2));
+  return { x, y, w, h, ax, bx };
+}
