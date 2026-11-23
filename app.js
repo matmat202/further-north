@@ -126,10 +126,22 @@ function mapSvg(a, b) {
     const [, cy] = L.xy(c), cx = i ? bx : ax;
     el('line', { class: 'll ' + cls, x1: x, x2: x + w, y1: cy, y2: cy });
     el('circle', { class: cls, cx, cy, r });
-    const t = el('text', { class: cls, x: cx, y: i === north ? cy - fs * 0.7 : cy + fs * 1.3,
-      'font-size': fs, 'stroke-width': fs / 5, 'text-anchor': cx < x + w * 0.25 ? 'start' : cx > x + w * 0.75 ? 'end' : 'middle' });
+    const lab = L.labelAt(c, cx, i === north, { x, y, w, h });
+    const t = el('text', { class: cls, x: lab.x, y: lab.y, 'font-size': fs, 'stroke-width': fs / 5, 'text-anchor': lab.anchor });
     t.textContent = `${c.name} ${L.fmtLat(c.lat)}`;
   });
+  // a close pair's two lines draw as one: a corner box pulls them apart, with the gap
+  const z = L.insetView(a, b, { x, y, w, h, ax, bx });
+  if (z) {
+    const g = el('g', { class: 'zoom' });
+    const add = (tag, attrs, text) => { const e = el(tag, attrs); g.append(e); if (text) e.textContent = text; return e; };
+    const zs = fs * 0.8, bxx = z.x + z.w * 0.2;
+    add('rect', { x: z.x, y: z.y, width: z.w, height: z.h, rx: z.w / 30 });
+    [[north, z.yn], [1 - north, z.ys]].forEach(([i, ly]) => add('line', { class: 'zl ' + (i ? 'b' : 'a'), x1: z.x, x2: z.x + z.w, y1: ly, y2: ly }));
+    add('path', { class: 'br', d: `M${bxx - zs / 3} ${z.yn}H${bxx}V${z.ys}H${bxx - zs / 3}` });
+    add('text', { class: 'z', x: bxx + zs / 3, y: (z.yn + z.ys) / 2 + zs * 0.35, 'font-size': zs, 'stroke-width': zs / 5 }, L.gapKm(a, b));
+    add('text', { class: 'z k', x: z.x + z.w - zs / 3, y: z.y + z.h - zs / 3, 'font-size': zs * 0.9, 'stroke-width': zs / 5, 'text-anchor': 'end' }, `zoom ×${z.k}`);
+  }
   return svg;
 }
 

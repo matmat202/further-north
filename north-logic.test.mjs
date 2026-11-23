@@ -289,5 +289,59 @@ const sha = async (days) => {
   ok('map: no window of the year is wider than 220°', widest <= 220, `widest ${widest}`);
 }
 
+// --- the magnifier for a close pair (2026-11-23) ------------------------------------------
+// Honolulu 21.31 / Jeddah 21.49 was round 10 on 2026-11-23: 0.18° on a 70°-wide map is
+// under a pixel at phone width, and the two lines drew as one.
+{
+  const hnl = { name: 'Honolulu', country: 'US', lat: 21.31, lon: -157.86 }, jed = { name: 'Jeddah', country: 'SA', lat: 21.49, lon: 39.19 };
+  const v = L.mapView(hnl, jed), z = L.insetView(hnl, jed, v);
+  ok('inset: a hair-breadth pair gets a magnifier', z !== null);
+  // Rome/New York, 1.2° on a 126°-wide map, is 3 px apart at phone width: it gets one too
+  ok('inset: Rome/New York (3 px apart on a phone) gets one', L.insetView(A, B) !== null);
+  ok('inset: none for a wide gap', L.insetView({ lat: 50, lon: 0 }, { lat: 35, lon: 60 }) === null);
+  ok('inset: the north line is drawn above the south one', z.yn < z.ys, JSON.stringify(z));
+  ok('inset: the lines are pulled apart to INSET_SPREAD of the box', Math.abs((z.ys - z.yn) - L.INSET_SPREAD * z.h) < 1e-9);
+  eq('inset: k is the magnification', z.k, Math.round((z.ys - z.yn) / 0.18));
+  ok('inset: the box is inside the map', z.x >= v.x && z.y >= v.y && z.x + z.w <= v.x + v.w && z.y + z.h <= v.y + v.h, JSON.stringify([v, z]));
+  // the lines sit in the upper half here, so the box goes at the bottom, away from Honolulu
+  // (the south city, whose label hangs below its line)
+  ok('inset: the box is in the half away from the lines', z.y > v.y + v.h / 2);
+  const hx = v.ax;
+  ok('inset: and on the other side from the south label', (hx > v.x + v.w / 2) === (z.x < v.x + v.w / 2), JSON.stringify({ hx, z }));
+  const same = (u, w) => JSON.stringify(u) === JSON.stringify(w);
+  ok('inset: either order gives the same box', same(L.insetView(jed, hnl), z) || (() => { const y = L.insetView(jed, hnl); return y.x === z.x && y.y === z.y && y.yn === z.yn; })());
+  // labels where app.js put them before labelAt existed: Rome (north, east edge) ends at its
+  // dot above its line; New York (south, west edge) starts at its dot below it
+  const rv = L.mapView(A, B), fs = rv.w / 26, rl = L.labelAt(A, rv.ax, true, rv), nl = L.labelAt(B, rv.bx, false, rv);
+  eq('label: Rome above its line, anchored at the end', [rl.anchor, rl.y], ['end', -41.9 - fs * 0.7]);
+  eq('label: New York below its line, anchored at the start', [nl.anchor, nl.y], ['start', -40.7 + fs * 1.3]);
+  eq('label: the box spans the text from the anchor', [rl.box[2], nl.box[0], Math.round(rl.box[2] - rl.box[0])], [rv.ax, rv.bx, Math.round(0.6 * fs * 'A 41.9°N'.length)]);
+  // a pair in the southern hemisphere near the bottom clamp: lines low, box at the top
+  const s1 = { name: 'S1', lat: -80.2, lon: -68.3 }, s2 = { name: 'S2', lat: -80, lon: 10 };
+  const sv = L.mapView(s1, s2), sz = L.insetView(s1, s2, sv);
+  ok('inset: lines in the lower half put the box at the top', sz && sz.y + sz.h < sv.y + sv.h / 2, JSON.stringify([sv, sz]));
+  // every round of the coming year at phone width (350 px of map): no two lines closer than
+  // 6 px without a box, and no box over either city or the label that shares its half
+  // (labels as app.js places them: fs = w/26, ~0.6 fs per character, anchored by position)
+  let bare = 0, hits = [], boxes = 0, d = '2026-11-23';
+  for (let n = 0; n < 365; n++, d = L.nextDay(d)) {
+    const p = L.poolFor(W.cities, d), C = p.map(L.city);
+    for (const [i, j] of L.pairsFor(p, d)) {
+      const a = C[i], b = C[j], m = L.mapView(a, b), q = L.insetView(a, b, m);
+      if (!q) { if (Math.abs(a.lat - b.lat) * 350 / m.w < 6) bare++; continue; }
+      boxes++;
+      const north = L.northIndex(a, b), over = ([x0, y0, x1, y1]) => x1 > q.x && x0 < q.x + q.w && y1 > q.y && y0 < q.y + q.h;
+      [[a, m.ax, 0], [b, m.bx, 1]].forEach(([c, cx, k]) => {
+        const cy = -c.lat, r = m.w / 110;
+        if (over([cx - r, cy - r, cx + r, cy + r])) hits.push([d, c.name, 'dot']);
+        if (over(L.labelAt(c, cx, k === north, m).box)) hits.push([d, c.name, 'label']);
+      });
+    }
+  }
+  eq('inset: no round of the year leaves two lines under 6 px apart without a box', bare, 0);
+  ok('inset: the year has boxes to check', boxes > 1000, `boxes ${boxes}`);
+  eq('inset: no box of the year covers a city or its label', [hits.length, hits.slice(0, 5)], [0, []]);
+}
+
 console.log(`${fail ? 'FAIL' : 'ok'} north-logic: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

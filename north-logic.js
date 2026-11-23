@@ -206,3 +206,44 @@ export function mapView(a, b) {
   const y = Math.max(-85, Math.min(85 - h, -(a.lat + b.lat) / 2 - h / 2));
   return { x, y, w, h, ax, bx };
 }
+
+// Where a city's name goes on the map: above its line for the north city, below for the
+// south, anchored by where the city sits across the window. `box` estimates the text's
+// extent (0.6 em a character) so the magnifier can stay off it.
+export function labelAt(c, cx, isNorth, v) {
+  const fs = v.w / 26, cy = -c.lat;
+  const y = isNorth ? cy - fs * 0.7 : cy + fs * 1.3;
+  const anchor = cx < v.x + v.w * 0.25 ? 'start' : cx > v.x + v.w * 0.75 ? 'end' : 'middle';
+  const tw = 0.6 * fs * `${c.name} ${fmtLat(c.lat)}`.length;
+  const x0 = anchor === 'start' ? cx : anchor === 'end' ? cx - tw : cx - tw / 2;
+  return { x: cx, y, anchor, fs, box: [x0, y - fs * 0.8, x0 + tw, y + fs * 0.2] };
+}
+
+// The magnifier for a close pair (2026-11-23). In rounds 8-10 the two latitudes are often
+// a few pixels apart on the map, so the two lines draw as one and the map cannot show who
+// won. When the gap is under INSET_MIN of the map's height, a small box in a corner redraws
+// the two lines pulled apart to INSET_SPREAD of its height, with how much it magnified.
+// Corners in order of preference: the half of the map away from the lines, on the other
+// side from the one label that shares that half (the south city's hangs below its line,
+// the north city's sits above); the first corner clear of both dots and both labels wins.
+// Returns null when no box is needed; otherwise the box (in mapView's space), the y of the
+// north and south line in it, and k, the magnification.
+export const INSET_MIN = 0.04, INSET_SPREAD = 0.3;
+export function insetView(a, b, v = mapView(a, b)) {
+  const gap = Math.abs(a.lat - b.lat);
+  if (gap >= INSET_MIN * v.h) return null;
+  const w = v.w * 0.32, h = v.h * 0.34, pad = v.w * 0.02;
+  const nA = a.lat >= b.lat;
+  const keep = [[a, v.ax, nA], [b, v.bx, !nA]].flatMap(([c, cx, n]) => {
+    const r = v.w / 110;
+    return [[cx - r, -c.lat - r, cx + r, -c.lat + r], labelAt(c, cx, n, v).box];
+  });
+  const top = (-a.lat - b.lat) / 2 > v.y + v.h / 2; // lines in the lower half: box up top
+  const sideX = (t) => (t ? (nA ? v.ax : v.bx) : (nA ? v.bx : v.ax)) > v.x + v.w / 2;
+  const corners = [[top, sideX(top)], [top, !sideX(top)], [!top, sideX(!top)], [!top, !sideX(!top)]];
+  const place = ([t, l]) => ({ x: l ? v.x + pad : v.x + v.w - pad - w, y: t ? v.y + pad : v.y + v.h - pad - h });
+  const clear = (p) => keep.every(([x0, y0, x1, y1]) => !(x1 > p.x && x0 < p.x + w && y1 > p.y && y0 < p.y + h));
+  const { x, y } = corners.map(place).find(clear) || place(corners[0]);
+  const yn = y + h * (0.5 - INSET_SPREAD / 2), ys = y + h * (0.5 + INSET_SPREAD / 2);
+  return { x, y, w, h, yn, ys, k: Math.round((ys - yn) / gap) };
+}
