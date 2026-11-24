@@ -220,6 +220,11 @@ const sha = async (days) => {
   const g = (km) => L.gapKm({ lat: km / L.KM_PER_DEG }, { lat: 0 });
   eq('10.5 km rounds to tens', g(10.5), '10 km');
   eq('just over 1,000 km keeps the thousands comma', g(1000.4), '1,000 km');
+  // Above 1,000 km the gap rounds to the nearest hundred, and the DIVISOR of that round was
+  // unpinned: 1000.4 and 2,200 happen to give the same answer under `km / 101`, so only a
+  // value whose half-hundred sits between the two divisors can see it. 1050 -> 1,100, and
+  // under `/101` it would read 1,000.
+  eq('1,050 km rounds up to the nearest hundred, not down', g(1050), '1,100 km');
   eq('the first day itself can be the missed one', L.missedDay('2026-10-28', () => false), '2026-10-27');
   eq('...and back to FIRST_DAY when the later ones were played',
     L.missedDay('2026-10-28', (d) => d !== L.FIRST_DAY), L.FIRST_DAY);
@@ -275,6 +280,17 @@ const sha = async (days) => {
   // a pair that does not cross keeps its old window exactly (golden from the pre-change code)
   eq('map: Rome/New York window unchanged', L.mapView(A, B), { x: -94, y: -72.925, w: 126.5, h: 63.25, ax: 12.5, bx: -74 });
   eq('map: a close pair zooms no tighter than 70°', L.mapView({ lat: 50, lon: -170 }, { lat: 40, lon: -169 }).x, -180);
+  // The other three edges of the same two clamps. Only the WEST one (-180) was pinned, so
+  // `180 - w` -> `181 - w`, `180 - w` -> `180 + w`, `-85` -> `-86` and `85 - h` -> `86 - h`
+  // all survived while the sweep could already tell each apart (2026-11-24). Note the y
+  // axis is inverted (y is built from -(lat)), so a NORTHERN pair lands on the -85 floor
+  // and a SOUTHERN pair on the 85 - h ceiling -- not the other way round.
+  eq('map: a pair against the dateline stops at the east edge, not past it',
+    L.mapView({ lat: 50, lon: 170 }, { lat: 40, lon: 179 }).x, 110);
+  eq('map: a far-northern pair stops at the -85 floor',
+    L.mapView({ lat: 84, lon: 0 }, { lat: 85, lon: 5 }).y, -85);
+  eq('map: a far-southern pair stops at the 85 - h ceiling',
+    L.mapView({ lat: -84, lon: 0 }, { lat: -85, lon: 5 }).y, 50);
   // every round of the coming year: both cities inside, and no window wider than 220°
   let bad = 0, widest = 0, d = '2026-11-22';
   for (let n = 0; n < 365; n++, d = L.nextDay(d)) {
